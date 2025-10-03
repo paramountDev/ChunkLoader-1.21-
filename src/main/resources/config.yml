@@ -1,0 +1,36 @@
+# Конфиг ChunkLoader
+
+# Блок, который будет использоваться как чанк-лоадер
+loader-block: LODESTONE
+
+# Имя, которое будет отображаться на предмете
+loader-name: "&bChunk Loader"
+
+# Лор предмета
+loader-lore:
+  - "Прогружает чанки вокруг себя"
+  - "Радиус: 3 чанка"
+
+# Радиус в чанках вокруг блока, которые будут загружены
+radius: 3
+
+# Крафт Chunk Loader
+recipe:
+  shape:
+    - "DID"
+    - "ISI"
+    - "DID"
+  ingredients:
+    D: DIAMOND
+    I: IRON_BLOCK
+    S: NETHER_STAR
+
+
+particle-color:
+  r: 72
+  g: 61
+  b: 139
+
+# Список сохранённых чанк-лоадеров (не редактируй вручную, плагин сам заполняет)
+loaders: []
+

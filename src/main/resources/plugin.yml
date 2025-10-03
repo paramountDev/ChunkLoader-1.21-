@@ -1,0 +1,12 @@
+name: ChunkLoader_SR
+version: '1.0-SNAPSHOT'
+main: dev.paramountDev.chunkLoader_SR.ChunkLoader_SR
+api-version: '1.21'
+
+author: ParamountDev
+
+
+commands:
+  chunkloader:
+    usage: /chunkloader get
+    permission: op

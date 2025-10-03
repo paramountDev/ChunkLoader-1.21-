@@ -195,4 +195,128 @@ public final class ChunkLoader_SR extends JavaPlugin implements Listener {
         return item;
     }
 
+    private void startCubeAnimation(JavaPlugin plugin, Location center) {
+        String key = serialize(center);
+        activeLoaders.add(center);
+
+        BukkitTask task = new BukkitRunnable() {
+            final Particle.DustOptions fillDust = new Particle.DustOptions(particleColor, 1.0f);
+            final double size = 1.0;
+            final int steps = 40;
+            int tick = 0;
+
+            @Override
+            public void run() {
+                if (!activeLoaders.contains(center)) {
+                    cancel();
+                    return;
+                }
+
+                World world = center.getWorld();
+                if (!world.isChunkLoaded(center.getBlockX() >> 4, center.getBlockZ() >> 4)) return;
+
+                if (tick > steps) {
+                    tick = 0;
+                    return;
+                }
+
+                double progress = (double) tick / steps;
+
+                double minX = center.getX() - size;
+                double maxX = center.getX() + size;
+                double minY = center.getY();
+                double maxY = center.getY() + 2 * size;
+                double minZ = center.getZ() - size;
+                double maxZ = center.getZ() + size;
+
+                fillCube(world, minX, maxX, minY, maxY, minZ, maxZ, progress, fillDust);
+
+                tick++;
+            }
+        }.runTaskTimer(plugin, 0L, 1);
+
+        loaderTasks.put(key, task);
+    }
+
+    private void fillCube(World world,
+                          double minX, double maxX,
+                          double minY, double maxY,
+                          double minZ, double maxZ,
+                          double progress,
+                          Particle.DustOptions dust) {
+        double currentY = minY + (maxY - minY) * progress;
+
+        for (double y = minY; y <= currentY; y += 0.4) {
+            for (double x = minX; x <= maxX; x += 0.4) {
+                for (double z = minZ; z <= maxZ; z += 0.4) {
+                    boolean isSurface = (x <= minX + 0.01 || x >= maxX - 0.01 ||
+                            z <= minZ + 0.01 || z >= maxZ - 0.01 ||
+                            y <= minY + 0.01 || y >= currentY - 0.01);
+
+                    if (isSurface) {
+                        world.spawnParticle(Particle.DUST, x, y, z, 1, 0, 0, 0, 0, dust);
+                    }
+                }
+            }
+        }
+    }
+
+
+    private void stopCubeAnimation(Location center) {
+        String key = serialize(center);
+
+        activeLoaders.remove(center);
+
+        BukkitTask task = loaderTasks.remove(key);
+        if (task != null) {
+            task.cancel();
+        }
+    }
+
+
+
+
+    private void forceLoadChunks(World world, int blockX, int blockZ, boolean load) {
+        int cx = blockX >> 4;
+        int cz = blockZ >> 4;
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                Chunk chunk = world.getChunkAt(cx + dx, cz + dz);
+                chunk.setForceLoaded(load);
+                if (load) world.loadChunk(chunk);
+            }
+        }
+    }
+
+    private String serialize(Location loc) {
+        return loc.getWorld().getName() + ";" + loc.getBlockX() + ";" + loc.getBlockY() + ";" + loc.getBlockZ();
+    }
+
+    private void reloadFromConfig() {
+        loaderBlock = Material.matchMaterial(getConfig().getString("loader-block", "LODESTONE"));
+        if (loaderBlock == null) loaderBlock = Material.LODESTONE;
+
+        loaderName = ChatColor.translateAlternateColorCodes('&', getConfig().getString("loader-name", "&bChunk Loader"));
+        loaderLore = getConfig().getStringList("loader-lore");
+
+        radius = Math.max(0, getConfig().getInt("radius", 3));
+
+        loaderLocations.clear();
+        loaderLocations.addAll(getConfig().getStringList("loaders"));
+
+
+        int r = getConfig().getInt("particle-color.r", 255);
+        int g = getConfig().getInt("particle-color.g", 255);
+        int b = getConfig().getInt("particle-color.b", 0);
+        particleColor = Color.fromRGB(r, g, b);
+    }
+
+    private void saveLoaders() {
+        getConfig().set("loader-block", loaderBlock.name());
+        getConfig().set("loader-name", loaderName);
+        getConfig().set("loader-lore", loaderLore);
+        getConfig().set("radius", radius);
+        getConfig().set("loaders", loaderLocations.stream().toList());
+        saveConfig();
+    }
 }
